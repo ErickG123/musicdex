@@ -1,8 +1,132 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@using musicdex.Models
+@model IEnumerable<Genero>
+
+@{
+    ViewData["Title"] = "Home - MusicDex";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<style>
+    /* Estilo inspirado em Spotify */
+    body { background:#121212; color:#fff; }
+    .page { padding: 2rem; }
+    .site-title { color:#1DB954; font-weight:700; letter-spacing:1px; margin-bottom:1.5rem; }
+    .genre-section { margin-bottom:2.5rem; }
+    .genre-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; }
+    .genre-title { font-size:1.25rem; font-weight:600; }
+    .see-all { color:#b3b3b3; text-decoration:none; font-size:.9rem; }
+    .tracks-row { display:flex; gap:1rem; overflow-x:auto; padding-bottom:0.5rem; }
+    .track-card {
+        min-width: 220px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+        border-radius:8px;
+        padding:12px;
+        display:flex;
+        gap:12px;
+        align-items:center;
+        transition:transform .12s ease, box-shadow .12s ease;
+        cursor:pointer;
+        flex: 0 0 auto;
+    }
+    .track-card:hover { transform:translateY(-6px); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
+    .cover {
+        width:72px;
+        height:72px;
+        border-radius:6px;
+        object-fit:cover;
+        flex-shrink:0;
+    }
+    .track-info { overflow:hidden; }
+    .track-title { font-weight:700; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .track-sub { color:#b3b3b3; font-size:.9rem; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .play-btn {
+        width:36px;
+        height:36px;
+        border-radius:50%;
+        background:#1DB954;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        margin-left:auto;
+        flex-shrink:0;
+        box-shadow:0 4px 10px rgba(29,185,84,0.18);
+    }
+    .play-btn svg { width:16px; height:16px; fill:#000; }
+    /* scrollbar look */
+    .tracks-row::-webkit-scrollbar { height:10px; }
+    .tracks-row::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius:8px; }
+</style>
+
+<div class="page container">
+    <h2 class="site-title">MusicDex</h2>
+
+    @if (!Model?.Any() ?? true)
+    {
+        <div class="alert alert-secondary">Nenhum gênero/música encontrado.</div>
+    }
+    else
+    {
+        @foreach (var genero in Model)
+        {
+            <section class="genre-section" aria-labelledby="genre-@genero.Id">
+                <div class="genre-header">
+                    <div class="genre-title" id="genre-@genero.Id">@genero.Nome</div>
+                    <a class="see-all" href="@Url.Action("Index", "Home")">ver todos</a>
+                </div>
+
+                <div class="tracks-row">
+                    @if (genero.Musicas != null && genero.Musicas.Any())
+                    {
+                        foreach (var track in genero.Musicas)
+                        {
+                            var imgSrc =
+                                !string.IsNullOrWhiteSpace(track.ImagemBase64)
+                                    ? (
+                                        track.ImagemBase64.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                                        || track.ImagemBase64.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                                          ? track.ImagemBase64
+                                          : "data:image/jpeg;base64," + track.ImagemBase64
+                                      )
+                                    : Url.Content("~/images/cover-placeholder.png");
+                            <div class="track-card" data-id="@track.Id" title="@($"{track.Titulo} — {track.Artista}")">
+                                <img class="cover" src="@imgSrc" alt="@track.Titulo" />
+                                <div class="track-info">
+                                    <div class="track-title">@track.Titulo</div>
+                                    <div class="track-sub">@track.Artista @((!string.IsNullOrWhiteSpace(track.Album)) ? $" • {track.Album}" : "")</div>
+                                </div>
+                                <div class="play-btn" data-id="@track.Id" title="Abrir detalhes / tocar">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-muted" style="padding:8px;">Nenhuma música nesse gênero.</div>
+                    }
+                </div>
+            </section>
+        }
+    }
 </div>
+
+<script>
+    document.addEventListener('click', function (e) {
+        const card = e.target.closest('.track-card');
+        if (card) {
+            const id = card.getAttribute('data-id');
+            if (id) {
+                window.location.href = '@Url.Action("Details", "Home")' + '?id=' + encodeURIComponent(id);
+            }
+        }
+
+        const play = e.target.closest('.play-btn');
+        if (play) {
+            const id = play.getAttribute('data-id');
+            if (id) {
+                window.open('@Url.Action("Details", "Home")' + '?id=' + encodeURIComponent(id), '_self');
+            }
+        }
+    });
+</script>
